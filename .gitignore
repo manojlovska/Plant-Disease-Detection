@@ -1,3 +1,10 @@
+# Datasets directory
+datasets/
+graphs/
+
+# Do not ignore datasets under yolox/data
+!*plantdisease/data/datasets/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

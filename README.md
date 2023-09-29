@@ -1,0 +1,1 @@
+### Detecting plant diseases using ResNet18
