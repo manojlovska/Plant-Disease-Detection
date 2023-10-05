@@ -1,1 +1,1 @@
-from .plantVillageDataset import CustomDataset
+from .plantVillageDataset import PlantDiseaseDataset

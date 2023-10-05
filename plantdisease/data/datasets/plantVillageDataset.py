@@ -15,7 +15,7 @@ from typing import Tuple, Dict, List
 from natsort import natsorted
 from plantdisease.data.helpers.helper_functions import find_classes, get_image_list
 
-class CustomDataset(Dataset):
+class PlantDiseaseDataset(Dataset):
     def __init__(self, target_dir: str, transform=None) -> None:
         self.paths = get_image_list(target_dir)
         self.transform = transform
@@ -30,7 +30,7 @@ class CustomDataset(Dataset):
     
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, int]:
         img = self.load_image(index)
-        class_name = self.paths[index].parent.name
+        class_name = os.path.dirname(self.paths[index]).split("/")[-1]
         class_idx = self.class_to_idx[class_name]
 
         if self.transform:
