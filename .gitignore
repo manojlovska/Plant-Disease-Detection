@@ -1,6 +1,7 @@
 # Datasets directory
 datasets/
 graphs/
+outputs/
 
 # Do not ignore datasets under yolox/data
 !*plantdisease/data/datasets/
