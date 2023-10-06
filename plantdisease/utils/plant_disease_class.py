@@ -8,7 +8,6 @@ from.base_class import BaseClass
 import torch
 from torch.nn import Module
 from torch.optim.lr_scheduler import LinearLR
-from torch.optim import SGD
 import os
 from torchvision import transforms
 
@@ -31,8 +30,8 @@ class PlantsClass(BaseClass):
         # pin memory
         self.pin_memory = False
 
-        # directory of dataset images
-        self.data_dir = "/home/anastasija/Documents/IJS/Projects/PlantDiseaseDetection/Plant-Disease-Detection/datasets/PlantVillage/Plant_leave_diseases_dataset_without_augmentation"
+        # directory of dataset images - ENCODE YOUR OWN PATH
+        self.data_dir = "/home/manojlovska/Documents/Projects/Plant-Disease-Detection/datasets/PlantVillage/Plant_leave_diseases_dataset_without_augmentation"
 
         # -------------- transform config -------------- #
         self.train_transforms = transforms.Compose([
@@ -50,15 +49,18 @@ class PlantsClass(BaseClass):
         # -------------- training config --------------- #
         # max training epochs
         self.max_epoch = 10
+        self.max_lr = 0.01
+        self.grad_clip = 0.1
+        self.weight_decay = 1e-4
 
         # shuffle set to true for training
         self.shuffle_train = True
 
         # optimizer
-        self.opt = SGD(self.get_model().parameters(), lr=0.1, momentum=0.9)
+        self.opt = torch.optim.Adam(self.get_model().parameters(), lr=self.max_lr, weight_decay=self.weight_decay)
         
         # learning rate scheduler, default is linear
-        self.scheduler = LinearLR(self.opt, start_factor=0.5, total_iters=4)
+        self.scheduler = torch.optim.lr_scheduler.OneCycleLR(self.opt, max_lr=self.max_lr, epochs=self.max_epoch, steps_per_epoch=len(self.get_data_loader))
 
         # if set to 1, user could see log every iteration
         self.print_interval = 10
@@ -75,6 +77,7 @@ class PlantsClass(BaseClass):
 
         # shuffle set to true for training
         self.shuffle_test = False
+        self.return_predictions = True
 
 
     def get_model(self):
@@ -126,7 +129,7 @@ class PlantsClass(BaseClass):
         return trainer
 
     
-    def eval(self, model, val_loader):
+    def eval(self, model, val_loader, device):
         from plantdisease.utils.evaluators.evaluate import evaluate
 
-        return evaluate(model, val_loader)
+        return evaluate(model, val_loader, device, return_predictions=self.return_predictions)

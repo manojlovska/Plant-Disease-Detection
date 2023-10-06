@@ -39,6 +39,13 @@ class Trainer:
         self.file_name = os.path.join(base_cls.output_dir, args.experiment_name)
 
         self.data_type = torch.float16 if args.fp16 else torch.float32
+        self.device = get_default_device()
+        
+        # Initialization of accuracies and losses
+        self.best_acc = 0
+        self.epoch_acc = 0
+        self.val_loss = 0
+        self.return_predictions = base_cls.return_predictions
 
         setup_logger(
             self.file_name,
@@ -60,16 +67,15 @@ class Trainer:
         logger.info("Basic class value:\n{}".format(self.base_cls))
 
         # model related init
-        self.device = get_default_device()
         model = self.base_cls.get_model()
         input_size = self.base_cls.input_size
+        model.to(self.device)
 
         from torchsummary import summary
         logger.info(
             "Model Summary: {}".format(summary(model, (3, 224, 224)))
         )
-        model.to(self.device)
-
+        
         # solver related init
         self.optimizer = self.base_cls.opt
 
@@ -109,9 +115,9 @@ class Trainer:
                 train_losses = []
                 lrs = []
 
-                step = 0
+                iter_step = 0
                 for batch in self.train_loader:
-                    step += 1
+                    iter_step += 1
                     iter_start_time = time.time()
                     
                     loss, outputs = training_step(self.model, batch, self.device)
@@ -129,41 +135,44 @@ class Trainer:
                     iter_end_time = time.time()
 
                     live.log_metric("loss", loss.item())
-                    live.log_param("learning rate", lr)
+                    live.log_metric("learning_rate", lr)
                     live.next_step()
                     
-
                     iter_time = iter_end_time - iter_start_time
 
-                    logger.info("Epoch: {}/{}, iter: {}/{}, loss: {}, learning rate: {}, training time: {} s".format(self.epoch+1, self.max_epoch, step, self.max_iter, loss, lr, iter_time))
+                    logger.info("Epoch: {}/{}, iter: {}/{}, loss: {}, learning rate: {}, training time: {} s".format(self.epoch+1, self.max_epoch, iter_step, self.max_iter, loss, lr, iter_time))
 
-            # After epoch
-            self.save_ckpt(ckpt_name="latest")
-            if (self.epoch + 1) % self.base_cls.eval_interval == 0:
-                self.evaluate_and_save_model()
+                # After epoch
+                self.save_ckpt(ckpt_name="latest")
+                if (self.epoch + 1) % self.base_cls.eval_interval == 0:
+                    self.evaluate_and_save_model()
+                    live.log_metric("epoch_accuracy", self.epoch_acc.item())
+                    live.log_metric("best_accuracy", self.best_acc.item())
+                    live.log_metric("val_loss", self.val_loss.item())
     
     def evaluate_and_save_model(self):
         evalmodel = self.model
-        self.val_loader = self.base_cls.get_eval_data_loader
+        self.val_loader = self.base_cls.get_eval_data_loader(
+            batch_size=self.args.batch_size,
+            device=self.device
+        )
         
-        predictions, output_dict = self.base_cls.eval(evalmodel, self.val_loader, return_predictions=True)
+        output_dict = self.base_cls.eval(evalmodel, self.val_loader, self.device)
         
-        epoch_acc = output_dict["val_accuracy"]
+        self.epoch_acc = output_dict["val_accuracy"]
+        self.val_loss = output_dict["val_loss"]
 
-        update_best_ckpt = epoch_acc > self.best_acc
-        self.best_acc = max(self.best_acc, epoch_acc)
+        update_best_ckpt = self.epoch_acc > self.best_acc
+        self.best_acc = max(self.best_acc, self.epoch_acc)
 
-        self.save_ckpt("last_epoch", update_best_ckpt, acc=epoch_acc)
+        logger.info("Epoch accuracy: {}".format(self.epoch_acc))
+        logger.info("Best accuracy: {}".format(self.best_acc))
+        self.save_ckpt("last_epoch", update_best_ckpt, acc=self.epoch_acc)
 
-        logger.info(" *** Training of epoch {} ended! Epoch accuracy: {}, best training accuracy achieved: {} ***".format(self.epoch + 1, epoch_acc, self.best_acc))
-
-        with Live() as live:
-            live.log_metric("epoch accuracy", epoch_acc)
-            live.log_metric("best accuracy", self.best_acc)
-            live.next_step()
+        logger.info(" *** Training of epoch {} ended! Epoch accuracy: {}, best training accuracy achieved: {} ***".format(self.epoch + 1, self.epoch_acc, self.best_acc))
 
         if self.save_history_ckpt:
-            self.save_ckpt(f"epoch_{self.epoch + 1}", acc=epoch_acc)
+            self.save_ckpt(f"epoch_{self.epoch + 1}", acc=self.epoch_acc)
 
         
     def save_ckpt(self, ckpt_name, update_best_ckpt=False, acc=None):
