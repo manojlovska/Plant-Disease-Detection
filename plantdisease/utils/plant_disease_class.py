@@ -57,10 +57,10 @@ class PlantsClass(BaseClass):
         self.shuffle_train = True
 
         # optimizer
-        self.opt = torch.optim.Adam(self.get_model().parameters(), lr=self.max_lr, weight_decay=self.weight_decay)
+        self.opt = torch.optim.Adam
         
         # learning rate scheduler, default is linear
-        self.scheduler = torch.optim.lr_scheduler.OneCycleLR(self.opt, max_lr=self.max_lr, epochs=self.max_epoch, steps_per_epoch=len(self.get_data_loader))
+        self.scheduler = torch.optim.lr_scheduler.OneCycleLR
 
         # if set to 1, user could see log every iteration
         self.print_interval = 10

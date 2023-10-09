@@ -5,6 +5,7 @@ import time
 from loguru import logger
 
 import torch
+import torch.nn as nn
 
 from plantdisease.utils.plant_disease_class import PlantsClass
 from plantdisease.utils.loggers.logger import setup_logger
@@ -33,6 +34,10 @@ class Trainer:
         self.args = args
 
         self.max_epoch = base_cls.max_epoch
+        self.max_lr = base_cls.max_lr
+        self.grad_clip = base_cls.grad_clip
+        self.weight_decay = base_cls.weight_decay
+
         self.save_history_ckpt = base_cls.save_history_ckpt
 
         self.input_size = base_cls.input_size
@@ -67,33 +72,31 @@ class Trainer:
         logger.info("Basic class value:\n{}".format(self.base_cls))
 
         # model related init
-        model = self.base_cls.get_model()
+        self.model = self.base_cls.get_model()
         input_size = self.base_cls.input_size
-        model.to(self.device)
+        self.model.to(self.device)
 
         from torchsummary import summary
         logger.info(
-            "Model Summary: {}".format(summary(model, (3, 224, 224)))
+            "Model Summary: {}".format(summary(self.model, (3, 224, 224)))
         )
         
-        # solver related init
-        self.optimizer = self.base_cls.opt
-
         # data related init
         self.train_loader = self.base_cls.get_data_loader(
             batch_size=self.args.batch_size,
             device=self.device
         )
 
+        # solver related init
+        self.optimizer = self.base_cls.opt(self.model.parameters(), lr=self.max_lr, weight_decay=self.weight_decay)
+        self.lr_scheduler = self.base_cls.scheduler(self.optimizer, max_lr=self.max_lr, epochs=self.max_epoch, steps_per_epoch=len(self.train_loader))
+
+
         # max_iter means iters per epoch
         self.max_iter = len(self.train_loader)
 
-        self.lr_scheduler = self.base_cls.scheduler
-
-        self.model = model
-
         logger.info("Starting the training process ...")
-        logger.info("\n{}".format(model))
+        logger.info("\n{}".format(self.model))
 
     def after_train(self):
         logger.info(
@@ -123,6 +126,9 @@ class Trainer:
                     loss, outputs = training_step(self.model, batch, self.device)
                     train_losses.append(loss)
                     loss.backward()
+
+                    if self.grad_clip: 
+                        nn.utils.clip_grad_value_(self.model.parameters(), self.grad_clip)
 
                     self.optimizer.step()
                     self.optimizer.zero_grad()
