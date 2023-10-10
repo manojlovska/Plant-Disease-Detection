@@ -76,10 +76,8 @@ class WandbLogger(object):
         if self.config:
             self.run.config.update(self.config)
 
-        self.run.define_metric("train/epoch")
-        self.run.define_metric("val/*", step_metric="train/step")
-        self.run.define_metric("train/step")
-        self.run.define_metric("train/*", step_metric="train/step")
+        self.run.define_metric("val/*")
+        self.run.define_metric("train/*")
 
         self.dataset = PlantDiseaseDataset
 
@@ -147,8 +145,8 @@ class WandbLogger(object):
                 metrics[k] = v.item()
 
         if step is not None:
-            metrics.update({"train/step": step})
-            self.run.log(metrics)
+            # metrics.update({"train/step": step})
+            self.run.log(metrics, step=step)
         else:
             self.run.log(metrics)
 
