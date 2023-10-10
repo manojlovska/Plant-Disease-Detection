@@ -49,6 +49,12 @@ def make_parser():
         help="`wandb` logger for metrics. ",
         default="wandb"
     )
+    parser.add_argument(
+        "opts",
+        help="Modify config options using the command-line",
+        default=None,
+        nargs=argparse.REMAINDER,
+    )
     
     return parser
 
@@ -64,6 +70,6 @@ if __name__ == "__main__":
     conf_cls = PlantsClass
 
     if not args_main.experiment_name:
-        args_main.experiment_name = "Experiment"
+        args_main.experiment_name = "Experiment-wandb"
 
     main(conf_cls, args_main)

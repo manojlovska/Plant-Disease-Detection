@@ -3,6 +3,7 @@ datasets/
 graphs/
 outputs/
 dvclive/
+wandb/
 
 # Do not ignore datasets under yolox/data
 !*plantdisease/data/datasets/

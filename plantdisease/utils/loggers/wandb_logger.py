@@ -58,7 +58,7 @@ class WandbLogger(object):
         if num_eval_images == -1:
             self.num_log_images = len(val_dataset)
         else:
-            self.num_log_images = min(num_eval_images, len(val_dataset))
+            self.num_log_images = min(num_eval_images, val_dataset.__len__())
 
         self.log_checkpoints = (log_checkpoints == "True" or log_checkpoints == "true")
         self._wandb_init = dict(
@@ -119,9 +119,9 @@ class WandbLogger(object):
             for i in range(self.num_log_images):
                 data_point = val_dataset[i]
                 img = data_point[0]
-                id = data_point[3]
-                img = np.transpose(img, (1, 2, 0))
-                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                id = data_point[1]
+                # img = np.transpose(img, (1, 2, 0))
+                # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
                 if isinstance(id, torch.Tensor):
                     id = id.item()

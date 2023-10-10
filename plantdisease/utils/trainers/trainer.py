@@ -13,6 +13,7 @@ from plantdisease.data.helpers.helper_functions import get_default_device
 import torch.nn.functional as F
 from tqdm import tqdm
 from dvclive import Live
+from plantdisease.utils.loggers.wandb_logger import WandbLogger
 
 
 def training_step(model, batch, device):
@@ -95,6 +96,16 @@ class Trainer:
         # max_iter means iters per epoch
         self.max_iter = len(self.train_loader)
 
+        if self.args.logger == "wandb":
+            self.wandb_logger = WandbLogger.initialize_wandb_logger(
+                self.args,
+                self.base_cls,
+                self.base_cls.get_eval_dataset()
+            )
+
+        else:
+            raise ValueError("logger must be either 'wandb'")
+        
         logger.info("Starting the training process ...")
         logger.info("\n{}".format(self.model))
 
@@ -102,6 +113,9 @@ class Trainer:
         logger.info(
             "Training of experiment is done and the highest precision is {:.2f}".format(self.best_acc * 100)
         )
+
+        if self.args.logger == "wandb":
+            self.wandb_logger.finish()
 
     def train_in_epoch(self):
         with Live() as live:
@@ -118,9 +132,9 @@ class Trainer:
                 train_losses = []
                 lrs = []
 
-                iter_step = 0
+                self.iter_step = 0
                 for batch in self.train_loader:
-                    iter_step += 1
+                    self.iter_step += 1
                     iter_start_time = time.time()
                     
                     loss, outputs = training_step(self.model, batch, self.device)
@@ -139,15 +153,20 @@ class Trainer:
                     self.lr_scheduler.step()
 
                     iter_end_time = time.time()
+                    iter_time = iter_end_time - iter_start_time
+
+                    if self.args.logger == "wandb":
+                        self.wandb_logger.log_metrics({"train/training_loss": loss, 
+                                                       "train/learning_rate": lr}, step=self.iter_step)
+                        # self.wandb_logger.log_metrics({"train/learning_rate": lr}, step=self.iter_step)
 
                     live.log_metric("loss", loss.item())
                     live.log_metric("learning_rate", lr)
                     live.next_step()
-                    
-                    iter_time = iter_end_time - iter_start_time
 
-                    logger.info("Epoch: {}/{}, iter: {}/{}, loss: {}, learning rate: {}, training time: {} s".format(self.epoch+1, self.max_epoch, iter_step, self.max_iter, loss, lr, iter_time))
+                    logger.info("Epoch: {}/{}, iter: {}/{}, loss: {}, learning rate: {}, training time: {} s".format(self.epoch+1, self.max_epoch, self.iter_step, self.max_iter, loss, lr, iter_time))
 
+                        
                 # After epoch
                 self.save_ckpt(ckpt_name="latest")
                 if (self.epoch + 1) % self.base_cls.eval_interval == 0:
@@ -170,6 +189,11 @@ class Trainer:
 
         update_best_ckpt = self.epoch_acc > self.best_acc
         self.best_acc = max(self.best_acc, self.epoch_acc)
+
+        if self.args.logger == "wandb":
+            self.wandb_logger.log_metrics({"val/val_accuracy": self.epoch_acc, 
+                                           "val/val_loss": self.val_loss}, step=self.iter_step)
+            # self.wandb_logger.log_metrics({"val/val_loss": self.val_loss}, step=self.iter_step)
 
         logger.info("Epoch accuracy: {}".format(self.epoch_acc))
         logger.info("Best accuracy: {}".format(self.best_acc))
@@ -198,6 +222,19 @@ class Trainer:
         if update_best_ckpt:
             filename = os.path.join(self.file_name, "best_ckpt.pth")
             torch.save(ckpt_state, filename)
+
+        if self.args.logger == "wandb":
+            self.wandb_logger.save_checkpoint(
+                self.file_name,
+                ckpt_name,
+                update_best_ckpt,
+                metadata={
+                    "epoch": self.epoch + 1,
+                    "optimizer": self.optimizer.state_dict(),
+                    "best_acc": self.best_acc,
+                    "curr_acc": self.epoch_acc
+                }
+            )
 
 
 
