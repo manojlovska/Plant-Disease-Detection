@@ -42,6 +42,14 @@ def make_parser():
         action="store_true",
         help="Adopting mix precision training.",
     )
+    parser.add_argument(
+        "-l",
+        "--logger",
+        type=str,
+        help="`wandb` logger for metrics. ",
+        default="wandb"
+    )
+    
     return parser
 
 @logger.catch

@@ -78,21 +78,21 @@ def get_lr(optimizer):
     for param_group in optimizer.param_groups:
         return param_group['lr']
 
-for epoch in range(1):
-    model.train()
-    train_losses = []
-    lrs = []
+# for epoch in range(1):
+#     model.train()
+#     train_losses = []
+#     lrs = []
 
-    for batch in tqdm(train_dl):
-        loss = training_step(model, batch)
-        train_losses.append(loss)
-        loss.backward()
+#     for batch in tqdm(train_dl):
+#         loss = training_step(model, batch)
+#         train_losses.append(loss)
+#         loss.backward()
 
-        optimizer.step()
-        optimizer.zero_grad()
+#         optimizer.step()
+#         optimizer.zero_grad()
 
-        # recording and updating learning rates
-        lrs.append(get_lr(optimizer))
-        scheduler.step()
+#         # recording and updating learning rates
+#         lrs.append(get_lr(optimizer))
+#         scheduler.step()
 
 
