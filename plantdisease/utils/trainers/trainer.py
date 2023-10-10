@@ -104,7 +104,9 @@ class Trainer:
             )
 
         else:
-            raise ValueError("logger must be either 'wandb'")
+            raise ValueError("logger must be 'wandb'")
+        
+        self.wandb_logger._log_validation_set(self.base_cls.get_eval_dataset())
         
         logger.info("Starting the training process ...")
         logger.info("\n{}".format(self.model))
@@ -119,10 +121,8 @@ class Trainer:
 
     def train_in_epoch(self):
         with Live() as live:
-            # live.log_param("device", self.device)
             live.log_param("batch size", self.args.batch_size)
             live.log_param("epochs", self.max_epoch)
-            # live.log_param("optimizer", self.optimizer)
 
             for self.epoch in range(self.max_epoch):
                 # Before epoch
@@ -158,7 +158,6 @@ class Trainer:
                     if self.args.logger == "wandb":
                         self.wandb_logger.log_metrics({"train/training_loss": loss, 
                                                        "train/learning_rate": lr}, step=self.iter_step)
-                        # self.wandb_logger.log_metrics({"train/learning_rate": lr}, step=self.iter_step)
 
                     live.log_metric("loss", loss.item())
                     live.log_metric("learning_rate", lr)
@@ -193,7 +192,6 @@ class Trainer:
         if self.args.logger == "wandb":
             self.wandb_logger.log_metrics({"val/val_accuracy": self.epoch_acc, 
                                            "val/val_loss": self.val_loss}, step=self.iter_step)
-            # self.wandb_logger.log_metrics({"val/val_loss": self.val_loss}, step=self.iter_step)
 
         logger.info("Epoch accuracy: {}".format(self.epoch_acc))
         logger.info("Best accuracy: {}".format(self.best_acc))
@@ -222,25 +220,3 @@ class Trainer:
         if update_best_ckpt:
             filename = os.path.join(self.file_name, "best_ckpt.pth")
             torch.save(ckpt_state, filename)
-
-        if self.args.logger == "wandb":
-            self.wandb_logger.save_checkpoint(
-                self.file_name,
-                ckpt_name,
-                update_best_ckpt,
-                metadata={
-                    "epoch": self.epoch + 1,
-                    "optimizer": self.optimizer.state_dict(),
-                    "best_acc": self.best_acc,
-                    "curr_acc": self.epoch_acc
-                }
-            )
-
-
-
-    
-
-
-
-
-        
