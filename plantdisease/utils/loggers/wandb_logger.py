@@ -77,7 +77,7 @@ class WandbLogger(object):
             self.run.config.update(self.config)
 
         self.run.define_metric("train/epoch")
-        self.run.define_metric("val/*", step_metric="train/epoch")
+        self.run.define_metric("val/*", step_metric="train/step")
         self.run.define_metric("train/step")
         self.run.define_metric("train/*", step_metric="train/step")
 
