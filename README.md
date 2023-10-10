@@ -1,1 +1,7 @@
-### Detecting plant diseases using ResNet18
+# Detecting plant diseases using ResNet9
+
+### Introduction
+
+
+
+
