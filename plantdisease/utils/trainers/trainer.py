@@ -124,6 +124,7 @@ class Trainer:
             live.log_param("batch size", self.args.batch_size)
             live.log_param("epochs", self.max_epoch)
 
+            self.wandb_step = 0
             for self.epoch in range(self.max_epoch):
                 # Before epoch
                 logger.info(" *** Start training epoch {} ***".format(self.epoch + 1))
@@ -134,6 +135,7 @@ class Trainer:
 
                 self.iter_step = 0
                 for batch in self.train_loader:
+                    self.wandb_step += 1
                     self.iter_step += 1
                     iter_start_time = time.time()
                     
@@ -157,7 +159,7 @@ class Trainer:
 
                     if self.args.logger == "wandb":
                         self.wandb_logger.log_metrics({"train/training_loss": loss, 
-                                                       "train/learning_rate": lr}, step=self.iter_step)
+                                                       "train/learning_rate": lr}, step=self.wandb_step)
 
                     live.log_metric("loss", loss.item())
                     live.log_metric("learning_rate", lr)
@@ -172,7 +174,7 @@ class Trainer:
                     self.evaluate_and_save_model()
                     if self.args.logger == "wandb":
                         self.wandb_logger.log_metrics({"val/val_accuracy": self.epoch_acc.item(), 
-                                                       "val/val_loss": self.val_loss.item()}, step=self.iter_step)
+                                                       "val/val_loss": self.val_loss.item()}, step=self.wandb_step)
                         
                     live.log_metric("epoch_accuracy", self.epoch_acc.item())
                     live.log_metric("best_accuracy", self.best_acc.item())
