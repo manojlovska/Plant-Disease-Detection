@@ -170,10 +170,14 @@ class Trainer:
                 self.save_ckpt(ckpt_name="latest")
                 if (self.epoch + 1) % self.base_cls.eval_interval == 0:
                     self.evaluate_and_save_model()
+                    if self.args.logger == "wandb":
+                        self.wandb_logger.log_metrics({"val/val_accuracy": self.epoch_acc.item(), 
+                                                       "val/val_loss": self.val_loss.item()}, step=self.iter_step)
+                        
                     live.log_metric("epoch_accuracy", self.epoch_acc.item())
                     live.log_metric("best_accuracy", self.best_acc.item())
                     live.log_metric("val_loss", self.val_loss.item())
-    
+
     def evaluate_and_save_model(self):
         evalmodel = self.model
         self.val_loader = self.base_cls.get_eval_data_loader(
@@ -188,10 +192,6 @@ class Trainer:
 
         update_best_ckpt = self.epoch_acc > self.best_acc
         self.best_acc = max(self.best_acc, self.epoch_acc)
-
-        if self.args.logger == "wandb":
-            self.wandb_logger.log_metrics({"val/val_accuracy": self.epoch_acc, 
-                                           "val/val_loss": self.val_loss}, step=self.iter_step)
 
         logger.info("Epoch accuracy: {}".format(self.epoch_acc))
         logger.info("Best accuracy: {}".format(self.best_acc))
