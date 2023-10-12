@@ -90,8 +90,8 @@ class Trainer:
 
         # solver related init
         self.optimizer = self.base_cls.opt(self.model.parameters(), lr=self.max_lr, weight_decay=self.weight_decay)
-        self.lr_scheduler = self.base_cls.scheduler(self.optimizer, max_lr=self.max_lr, epochs=self.max_epoch, steps_per_epoch=len(self.train_loader))
-
+        # self.lr_scheduler = self.base_cls.scheduler(self.optimizer, max_lr=self.max_lr, epochs=self.max_epoch, steps_per_epoch=len(self.train_loader))
+        self.lr_scheduler = self.base_cls.scheduler(self.optimizer, base_lr=0.001, max_lr=0.02,step_size_up=1000,mode="exp_range",gamma=0.9995, cycle_momentum=False)
 
         # max_iter means iters per epoch
         self.max_iter = len(self.train_loader)

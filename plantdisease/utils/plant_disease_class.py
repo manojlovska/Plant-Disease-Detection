@@ -59,8 +59,8 @@ class PlantsClass(BaseClass):
         # optimizer
         self.opt = torch.optim.Adam
         
-        # learning rate scheduler, default is linear
-        self.scheduler = torch.optim.lr_scheduler.OneCycleLR
+        # learning rate scheduler
+        self.scheduler = torch.optim.lr_scheduler.CyclicLR
 
         # if set to 1, user could see log every iteration
         self.print_interval = 10

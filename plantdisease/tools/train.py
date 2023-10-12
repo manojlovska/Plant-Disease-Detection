@@ -70,6 +70,6 @@ if __name__ == "__main__":
     conf_cls = PlantsClass
 
     if not args_main.experiment_name:
-        args_main.experiment_name = "Experiment-wandb"
+        args_main.experiment_name = "Experiment-wandb-changedLR"
 
     main(conf_cls, args_main)
